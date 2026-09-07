@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>你是哪个动物塑？</title>
+    <style>
+        /* ===== 全局重置 & 莫兰迪色系 ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: #f3f0eb; /* 燕麦色底 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .app-container {
+            max-width: 480px;
+            width: 100%;
+            background: #ffffff;
+            border-radius: 40px 40px 32px 32px;
+            box-shadow: 0 20px 50px rgba(160, 140, 130, 0.15);
+            padding: 28px 24px 32px;
+            transition: all 0.2s ease;
+            position: relative;
+            min-height: 560px;
+        }
+
+        /* ===== 进度条 ===== */
+        .progress-area {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .progress-track {
+            flex: 1;
+            height: 6px;
+            background: #e5ddd6;
+            border-radius: 10px;
+            margin-right: 14px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: #b7a99a; /* 莫兰迪灰褐 */
+            border-radius: 10px;
+            transition: width 0.4s ease;
+        }
+
+        .question-counter {
+            font-size: 15px;
+            font-weight: 500;
+            color: #9a8b7e;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+
+        /* ===== 题目卡片 ===== */
+        .question-card {
+            animation: fadeSlide 0.35s ease forwards;
+        }
+
+        @keyframes fadeSlide {
+            0% { opacity: 0; transform: translateY(18px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .q-text {
+            font-size: 20px;
+            font-weight: 600;
+            line-height: 1.5;
+            color: #3d3832;
+            margin-bottom: 26px;
+            letter-spacing: -0.2px;
+            padding-right: 4px;
+        }
+
+        /* ===== 选项列表 ===== */
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .option-btn {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 16px 20px;
+            background: #f7f4f0;
+            border: 1.5px solid transparent;
+            border-radius: 24px;
+            font-size: 16px;
+            line-height: 1.4;
+            color: #3d3832;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            letter-spacing: 0.2px;
+            word-break: break-word;
+        }
+
+        .option-btn:active {
+            transform: scale(0.98);
+        }
+
+        .option-btn:hover {
+            background: #efe9e2;
+            border-color: #d6ccc2;
+        }
+
+        .option-btn.selected {
+            background: #d6ccc2;
+            border-color: #b7a99a;
+            font-weight: 500;
+        }
+
+        /* ===== 按钮 ===== */
+        .btn-primary {
+            display: block;
+            width: 100%;
+            padding: 16px 20px;
+            margin-top: 16px;
+            background: #b7a99a;
+            border: none;
+            border-radius: 40px;
+            font-size: 18px;
+            font-weight: 600;
+            color: #ffffff;
+            letter-spacing: 0.6px;
+            cursor: pointer;
+            transition: background 0.25s ease, transform 0.15s ease;
+            box-shadow: 0 6px 14px rgba(160, 140, 130, 0.20);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.97);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-primary:not(:disabled):hover {
+            background: #a79584;
+        }
+
+        /* ===== 结果页 ===== */
+        .result-card {
+            animation: fadeSlide 0.45s ease forwards;
+        }
+
+        .result-emoji {
+            font-size: 64px;
+            text-align: center;
+            display: block;
+            margin: 6px 0 10px;
+            line-height: 1.2;
+        }
+
+        .result-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #3d3832;
+            text-align: center;
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        .result-sub {
+            font-size: 16px;
+            font-weight: 400;
+            color: #7b6e62;
+            text-align: center;
+            margin-bottom: 18px;
+            background: #f7f4f0;
+            padding: 14px 18px;
+            border-radius: 30px;
+            line-height: 1.5;
+        }
+
+        .result-desc {
+            font-size: 16px;
+            line-height: 1.7;
+            color: #3d3832;
+            background: #faf8f5;
+            padding: 20px 20px;
+            border-radius: 24px;
+            margin: 8px 0 16px;
+            border-left: 4px solid #d6ccc2;
+        }
+
+        .result-advice {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #5f554a;
+            background: #efe9e2;
+            padding: 16px 20px;
+            border-radius: 24px;
+            margin: 6px 0 20px;
+            font-style: italic;
+        }
+
+        .result-advice strong {
+            font-style: normal;
+            font-weight: 600;
+            color: #4d433b;
+        }
+
+        .btn-restart {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background: transparent;
+            border: 2px solid #d6ccc2;
+            border-radius: 40px;
+            font-size: 17px;
+            font-weight: 500;
+            color: #5f554a;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 12px;
+            text-align: center;
+        }
+
+        .btn-restart:active {
+            transform: scale(0.97);
+        }
+
+        .btn-restart:hover {
+            background: #f7f4f0;
+            border-color: #b7a99a;
+        }
+
+        /* ===== 隐藏工具 ===== */
+        .hidden {
+            display: none !important;
+        }
+
+        /* ===== 底部留白 ===== */
+        .spacer {
+            height: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container" id="app">
+    <!-- 进度条 -->
+    <div class="progress-area">
+        <div class="progress-track">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <span class="question-counter" id="questionCounter">1 / 20</span>
+    </div>
+
+    <!-- 题目区 -->
+    <div id="questionArea">
+        <div class="question-card" id="questionCard">
+            <div class="q-text" id="questionText">加载题目中...</div>
+            <div class="options-list" id="optionsContainer"></div>
+            <button class="btn-primary" id="nextBtn" disabled>下一题 →</button>
+        </div>
+    </div>
+
+    <!-- 结果区（初始隐藏） -->
+    <div id="resultArea" class="hidden">
+        <div class="result-card">
+            <span class="result-emoji" id="resultEmoji">🐼</span>
+            <div class="result-title" id="resultTitle">慵懒熊猫</div>
+            <div class="result-sub" id="resultSub">核心特质</div>
+            <div class="result-desc" id="resultDesc">描述加载中...</div>
+            <div class="result-advice" id="resultAdvice"><strong>💡 建议</strong> 建议加载中...</div>
+            <button class="btn-restart" id="restartBtn">🔄 重新测试</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ============================================================
+        //  1. 数据：20题（每项 A/B/C/D 对应 1/2/3/4 分）
+        // ============================================================
+        const QUESTIONS = [
+            { q: '周末早晨，你更可能怎样醒来？', opts: ['自然醒，赖床刷手机，慢慢回神', '立刻起床，规划好全天行程', '被闹钟吵醒，但会再眯10分钟', '听到一点动静就彻底清醒，直接起身'] },
+            { q: '在朋友聚会中，你通常扮演什么角色？', opts: ['安静倾听者，偶尔插一句幽默点评', '气氛担当，讲笑话带动全场', '照顾每个人，帮大家倒水夹菜', '观察全场，默默分析每个人的状态'] },
+            { q: '面对一个突发困难，你的第一反应是？', opts: ['先冷静，想清楚再行动', '马上尝试各种方法，试错中前进', '求助身边信任的人', '评估风险，制定最小损失方案'] },
+            { q: '你更喜欢哪种工作/学习环境？', opts: ['安静独立，自己掌控节奏', '热闹开放，有团队协作感', '舒适温馨，像在家一样放松', '整洁有序，一切井井有条'] },
+            { q: '别人通常用哪个词形容你？', opts: ['佛系', '机灵', '温柔', '靠谱'] },
+            { q: '遇到意见不合时，你更倾向于？', opts: ['回避争论，保持和谐', '据理力争，说服对方', '妥协退让，照顾对方感受', '理性分析，找中立证据'] },
+            { q: '你最喜欢的放松方式是？', opts: ['窝着看剧或打游戏', '运动或户外活动', '和好友聊天或撸宠物', '整理房间或做手工'] },
+            { q: '在团队中，你更在意？', opts: ['自己的节奏不被干扰', '能发挥创意和表现力', '大家是否开心融洽', '目标是否高效达成'] },
+            { q: '你对新事物的态度是？', opts: ['观望，等别人试过再说', '充满好奇，第一个尝试', '有点害怕，但愿意尝试', '评估利弊后谨慎尝试'] },
+            { q: '你更看重朋友的哪种特质？', opts: ['不粘人，给彼此空间', '有趣，能一起疯', '温暖，能互相倾诉', '靠谱，说到做到'] },
+            { q: '当心情不好时，你通常会？', opts: ['一个人待着消化', '出去大吃一顿或逛街', '找朋友倾诉', '写日记或整理思绪'] },
+            { q: '你更擅长哪种类型的决策？', opts: ['凭直觉快速决定', '凭灵感创意决定', '凭感觉和人情决定', '凭数据和逻辑决定'] },
+            { q: '你对规则的态度是？', opts: ['灵活变通，不太在意', '挑战规则，找新玩法', '尽量遵守，不想惹麻烦', '严格执行，认为规则必要'] },
+            { q: '你更向往哪种旅行方式？', opts: ['随心漫游，不做攻略', '打卡冒险，玩刺激项目', '休闲度假，享受美食美景', '文化深度游，规划周密'] },
+            { q: '别人向你求助时，你通常会？', opts: ['给建议但保持距离', '热情帮忙，但可能粗心', '耐心倾听，尽力陪伴', '提供实际有效的解决方案'] },
+            { q: '你对自己的评价更接近？', opts: ['随性自在', '活泼多变', '温和包容', '严谨自律'] },
+            { q: '你在社交场合的能量来源是？', opts: ['独处充电，社交耗电', '社交充电，越玩越嗨', '看大家开心自己就开心', '深度交流才有能量'] },
+            { q: '你更害怕哪种情况？', opts: ['被打扰私人空间', '生活无聊重复', '被人误解或冷落', '计划被打乱失控'] },
+            { q: '你更愿意被别人怎样记住？', opts: ['一个酷酷的独行侠', '一个永远有趣的人', '一个很温暖的人', '一个很可靠的人'] },
+            { q: '如果用一种颜色形容自己，你会选？', opts: ['灰色/米色（中性柔和）', '橙色/红色（明亮热烈）', '粉色/绿色（温柔自然）', '蓝色/黑色（沉稳冷静）'] }
+        ];
+
+        // ============================================================
+        //  2. 结果数据（8种）
+        // ============================================================
+        const RESULTS = [
+            {
+                min: 20, max: 27,
+                emoji: '🐼',
+                title: '慵懒熊猫',
+                desc: '你是自带松弛感的哲学家，骨子里透着从容与通透。你不爱争抢，却总能在关键时刻一鸣惊人；你喜欢按自己的节奏生活，不被外界喧嚣裹挟。看似懒洋洋，实则对感兴趣的事情有着惊人的专注力。你的存在本身就是一种治愈——让身边的人学会放慢脚步，感受当下的美好。你不追求成为焦点，但你的平和与幽默，总让人忍不住想靠近。',
+                advice: '偶尔走出舒适圈，挑战一件从未做过的小事，你会发现自己比想象中更有力量。'
+            },
+            {
+                min: 28, max: 35,
+                emoji: '🦊',
+                title: '机灵狐狸',
+                desc: '你天生聪慧敏锐，脑子里装满了奇思妙想。反应快、口才好，是朋友中的智囊和气氛担当。你擅长在复杂局面中找到捷径，也懂得用幽默化解尴尬。你不喜欢一成不变，对新事物永远保持好奇心，总能玩出新花样。你的魅力在于灵动与不可预测——没人猜到你下一步会做什么，但所有人都期待你的表演。你既精明又可爱，是那种让人又爱又佩服的存在。',
+                advice: '聪明是天赋，但耐心是修行。在快速奔跑的同时，学会倾听和等待，会让你走得更稳更远。'
+            },
+            {
+                min: 36, max: 43,
+                emoji: '🐶',
+                title: '温暖金毛',
+                desc: '你是行走的小太阳，真诚、友善、充满亲和力。你有一种天然的感染力，能让陌生人很快放下戒备。你总是默默关注别人的需求，递上一杯热水、记得对方的生日、在低落时给一个拥抱——这些都是你的日常。你不在乎是否被回报，你的快乐本就来自付出。你的温暖不是刻意表现，而是骨子里的本能。有你在的地方，空气都是柔软而明亮的。',
+                advice: '你总是照亮别人，但别忘了自己也需要光。学会设立边界，把温柔也留一份给自己。'
+            },
+            {
+                min: 44, max: 51,
+                emoji: '🦅',
+                title: '锐利雄鹰',
+                desc: '你天生带着一种王者气场，目光高远，行动果决。你习惯站在高处看全局，善于规划，执行力一流。对你来说，目标是用来征服的，困难是用来跨越的。你不畏惧孤独，因为你知道通往顶峰的路本来就人少。你的自信和魄力，让身边的人不自觉地信任你、追随你。你像风一样自由，也像山一样坚定——你天生就是那个带着大家飞向更高处的人。',
+                advice: '高处虽好，记得偶尔降落。拥抱一下平凡的温度，你会发现人间烟火也是另一种风景。'
+            },
+            {
+                min: 52, max: 59,
+                emoji: '🐱',
+                title: '独立黑猫',
+                desc: '你神秘、优雅、极度自洽。你享受独处，精神世界丰富得像一座秘密花园。你不讨好、不解释、不随波逐流，有着自己独特的审美和人生节奏。你敏锐而细腻，能觉察到别人忽略的细节，也常说出让人深思的话。你像夜晚的猫一样，既疏离又迷人，让人忍不住想了解，却又不敢轻易打扰。你不需要被所有人喜欢，你只需要做最真实、最自由的自己。',
+                advice: '你的孤独是盔甲也是软肋。偶尔向世界伸出一只爪子，你会发现也有人愿意温柔接住。'
+            },
+            {
+                min: 60, max: 67,
+                emoji: '🦌',
+                title: '优雅鹿系',
+                desc: '你温润如玉，气质从容，自带一股文艺而灵动的气息。你对美有天然的感知力——一幅画、一段音乐、一片落叶，都能触动你的心弦。你善于倾听，共情力极强，总能用最温柔的方式接住别人的情绪。你不张扬，但你的存在像一阵清风，让人感到平静和治愈。你心思细腻，举止得体，是那种越相处越觉得有深度、有韵味的人。',
+                advice: '你的敏感是珍贵的天赋，但别让它过度消耗你。学会说“不”，为自己设立温柔的边界。'
+            },
+            {
+                min: 68, max: 75,
+                emoji: '🐺',
+                title: '孤傲狼族',
+                desc: '你冷静、理性、坚韧得让人敬佩。你不轻易表露情绪，但内心有着强烈的信念和忠诚。你对认定的人或事，会倾尽全力去守护，即使前路艰险也绝不回头。你不喜欢无效的社交，更看重深度和真实。你像荒野里的孤狼，独立而强大，不依赖任何人，但也不吝啬于对值得的人付出全部真心。你的沉默里藏着火焰，你的克制里藏着深情。',
+                advice: '强大不等于独自扛起一切。信任他人、允许自己示弱，也是一种更高级的勇气。'
+            },
+            {
+                min: 76, max: 80,
+                emoji: '🐉',
+                title: '神秘龙裔',
+                desc: '你是人群中极少数的那种人——深邃、神秘、自带传奇色彩。你的思想和创造力常常超越常规，能看到别人看不到的联系与可能。你不容易被定义，也不屑于被归类，你活在属于自己的维度里。你有强烈的直觉和洞察力，常说出预言般的话语。你不需要被所有人理解，但那些能与你共振的人，会感受到你身上那种古老而强大的灵魂力量。',
+                advice: '你不需要被所有人理解，只需找到少数能与你共鸣的灵魂。不必把自己藏得太深，偶尔现世，也是一种慈悲。'
+            }
+        ];
+
+        // ============================================================
+        //  3. 状态
+        // ============================================================
+        let currentIndex = 0;          // 0~19
+        const total = QUESTIONS.length;
+        let scores = [];              // 每道题得分 1~4，初始 undefined
+        let selectedIdx = -1;         // 当前题目选中选项索引
+
+        // DOM 引用
+        const progressFill = document.getElementById('progressFill');
+        const questionCounter = document.getElementById('questionCounter');
+        const questionText = document.getElementById('questionText');
+        const optionsContainer = document.getElementById('optionsContainer');
+        const nextBtn = document.getElementById('nextBtn');
+        const questionArea = document.getElementById('questionArea');
+        const resultArea = document.getElementById('resultArea');
+        const resultEmoji = document.getElementById('resultEmoji');
+        const resultTitle = document.getElementById('resultTitle');
+        const resultDesc = document.getElementById('resultDesc');
+        const resultAdvice = document.getElementById('resultAdvice');
+        const restartBtn = document.getElementById('restartBtn');
+
+        // ============================================================
+        //  4. 核心函数
+        // ============================================================
+
+        // 渲染当前题目
+        function renderQuestion() {
+            const qData = QUESTIONS[currentIndex];
+            questionText.textContent = qData.q;
+            // 生成选项按钮
+            optionsContainer.innerHTML = '';
+            qData.opts.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = String.fromCharCode(65 + idx) + '. ' + opt; // A. B. C. D.
+                btn.dataset.index = idx;
+                // 如果该题已有得分，恢复选中状态
+                if (scores[currentIndex] !== undefined && scores[currentIndex] === idx + 1) {
+                    btn.classList.add('selected');
+                    selectedIdx = idx;
+                }
+                btn.addEventListener('click', function(e) {
+                    selectOption(parseInt(this.dataset.index));
+                });
+                optionsContainer.appendChild(btn);
+            });
+
+            // 更新进度
+            const answered = scores.filter(v => v !== undefined).length;
+            const pct = Math.round((answered / total) * 100);
+            progressFill.style.width = pct + '%';
+            questionCounter.textContent = (currentIndex + 1) + ' / ' + total;
+
+            // 若当前题已选，启用下一题按钮；否则禁用
+            if (scores[currentIndex] !== undefined) {
+                nextBtn.disabled = false;
+                nextBtn.textContent = (currentIndex === total - 1) ? '✨ 查看结果' : '下一题 →';
+            } else {
+                nextBtn.disabled = true;
+                nextBtn.textContent = (currentIndex === total - 1) ? '✨ 查看结果' : '下一题 →';
+            }
+        }
+
+        // 选择选项
+        function selectOption(idx) {
+            // 移除同组其他高亮
+            const btns = optionsContainer.querySelectorAll('.option-btn');
+            btns.forEach((btn, i) => {
+                btn.classList.toggle('selected', i === idx);
+            });
+            selectedIdx = idx;
+            // 记录得分 (1~4)
+            scores[currentIndex] = idx + 1;
+            // 启用下一题按钮
+            nextBtn.disabled = false;
+            // 更新进度条
+            const answered = scores.filter(v => v !== undefined).length;
+            const pct = Math.round((answered / total) * 100);
+            progressFill.style.width = pct + '%';
+            // 如果当前是最后一题，改变按钮文字
+            if (currentIndex === total - 1) {
+                nextBtn.textContent = '✨ 查看结果';
+            }
+        }
+
+        // 下一题 或 查看结果
+        function goNext() {
+            if (nextBtn.disabled) return;
+
+            // 如果当前是最后一题且已选 -> 显示结果
+            if (currentIndex === total - 1) {
+                showResult();
+                return;
+            }
+
+            // 否则前进到下一题
+            if (scores[currentIndex] !== undefined) {
+                currentIndex++;
+                renderQuestion();
+                // 滚动到顶部（移动端体验）
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        // 计算总分并匹配结果
+        function getResultData() {
+            const totalScore = scores.reduce((sum, val) => sum + val, 0);
+            for (let r of RESULTS) {
+                if (totalScore >= r.min && totalScore <= r.max) {
+                    return { ...r, score: totalScore };
+                }
+            }
+            // fallback
+            return { ...RESULTS[0], score: totalScore };
+        }
+
+        // 显示结果页
+        function showResult() {
+            const result = getResultData();
+            resultEmoji.textContent = result.emoji;
+            resultTitle.textContent = result.title;
+            resultDesc.textContent = result.desc;
+            resultAdvice.innerHTML = '<strong>💡 建议</strong> ' + result.advice;
+
+            // 切换显示
+            questionArea.classList.add('hidden');
+            resultArea.classList.remove('hidden');
+            // 隐藏进度条（或保留，但视觉上隐藏进度数字）
+            document.querySelector('.progress-area').style.opacity = '0.3';
+            // 更新进度条为100%
+            progressFill.style.width = '100%';
+            // 滚动到顶部
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // 重新开始
+        function resetTest() {
+            currentIndex = 0;
+            scores = [];
+            selectedIdx = -1;
+            document.querySelector('.progress-area').style.opacity = '1';
+            resultArea.classList.add('hidden');
+            questionArea.classList.remove('hidden');
+            renderQuestion();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // ============================================================
+        //  5. 事件绑定 & 启动
+        // ============================================================
+        nextBtn.addEventListener('click', goNext);
+        restartBtn.addEventListener('click', resetTest);
+
+        // 初始化：scores 填 undefined
+        for (let i = 0; i < total; i++) {
+            scores[i] = undefined;
+        }
+        renderQuestion();
+    })();
+</script>
+
+</body>
+</html>
